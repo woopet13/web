@@ -2,19 +2,89 @@
 
 import { useCart } from '@/context/CartContext'
 import { formatPrice } from '@/lib/products'
-import { Trash, Plus, Minus, ShoppingCartSimple, CreditCard, ShieldCheck } from '@phosphor-icons/react'
+import { Trash, Plus, Minus, ShoppingCartSimple, CreditCard, ShieldCheck, Truck, MapPin } from '@phosphor-icons/react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { REGIONS } from '@/lib/chile-regions'
+
+interface ShippingQuote {
+  cost: number
+  etaMin: number
+  etaMax: number
+  service: string
+  carrier: string
+  weightKg: number
+  source: string
+}
+
+const inputCls =
+  'w-full border border-[#F3E0D5] rounded-xl px-4 py-2.5 text-[#155E5B] focus:outline-none focus:border-[#F0846E] focus:ring-2 focus:ring-[#F0846E]/20 transition-colors bg-[#FFFBF7]'
 
 export default function CarritoPage() {
   const { items, removeItem, updateQuantity, total, clearCart } = useCart()
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  // Datos de envío
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [region, setRegion] = useState('')
+  const [comuna, setComuna] = useState('')
+  const [address, setAddress] = useState('')
+  const [reference, setReference] = useState('')
+
+  const [quote, setQuote] = useState<ShippingQuote | null>(null)
+  const [quoting, setQuoting] = useState(false)
+
+  const comunas = useMemo(
+    () => REGIONS.find(r => r.name === region)?.comunas ?? [],
+    [region],
+  )
+
+  // Al cambiar de región, resetea la comuna y la cotización.
+  useEffect(() => {
+    setComuna('')
+    setQuote(null)
+  }, [region])
+
+  // Cotiza el despacho con Blue cuando hay región + comuna (y al cambiar el carrito).
+  useEffect(() => {
+    if (!region || !comuna || items.length === 0) {
+      setQuote(null)
+      return
+    }
+    let cancelled = false
+    setQuoting(true)
+    fetch('/api/shipping/quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        regionName: region,
+        comuna,
+        items: items.map(i => ({ weight: i.weight, quantity: i.quantity })),
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return
+        setQuote(data?.cost ? data : null)
+      })
+      .catch(() => !cancelled && setQuote(null))
+      .finally(() => !cancelled && setQuoting(false))
+    return () => {
+      cancelled = true
+    }
+  }, [region, comuna, items])
+
+  const shippingCost = quote?.cost ?? 0
+  const grandTotal = total + shippingCost
+  const addressComplete = Boolean(name && phone && region && comuna && address)
+
   async function handleCheckout() {
+    if (!addressComplete || !quote) return
     setLoading(true)
     const supabase = createClient()
     const { data } = await supabase.auth.getUser()
@@ -28,7 +98,20 @@ export default function CarritoPage() {
       const res = await fetch('/api/flow/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, total, email: data.user.email, userId: data.user.id }),
+        body: JSON.stringify({
+          items,
+          total,
+          shipping: {
+            cost: quote.cost,
+            carrier: quote.carrier,
+            service: quote.service,
+            etaMin: quote.etaMin,
+            etaMax: quote.etaMax,
+          },
+          address: { name, phone, region, comuna, address, reference },
+          email: data.user.email,
+          userId: data.user.id,
+        }),
       })
       const json = await res.json()
       if (json.url) {
@@ -61,7 +144,7 @@ export default function CarritoPage() {
       <h1 className="font-display text-3xl font-bold text-[#155E5B] mb-8">Tu carrito</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Items */}
+        {/* Items + dirección */}
         <div className="lg:col-span-2 space-y-4">
           {items.map(item => (
             <div key={item.id} className="bg-white rounded-2xl p-4 flex gap-4 border border-[#F3E0D5] shadow-sm">
@@ -101,6 +184,50 @@ export default function CarritoPage() {
               </button>
             </div>
           ))}
+
+          {/* Dirección de despacho */}
+          <div className="bg-white rounded-2xl p-6 border border-[#F3E0D5] shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin weight="fill" size={20} className="text-[#F0846E]" />
+              <h2 className="font-display font-bold text-[#155E5B] text-lg">Dirección de despacho</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Nombre de quien recibe</label>
+                <input className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="Nombre y apellido" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Teléfono</label>
+                <input className={inputCls} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+56 9 ..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Región</label>
+                <select className={inputCls} value={region} onChange={e => setRegion(e.target.value)}>
+                  <option value="">Selecciona…</option>
+                  {REGIONS.map(r => (
+                    <option key={r.code} value={r.name}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Comuna</label>
+                <select className={inputCls} value={comuna} onChange={e => setComuna(e.target.value)} disabled={!region}>
+                  <option value="">{region ? 'Selecciona…' : 'Elige región primero'}</option>
+                  {comunas.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Dirección (calle y número)</label>
+                <input className={inputCls} value={address} onChange={e => setAddress(e.target.value)} placeholder="Av. Siempreviva 742" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Depto / referencia (opcional)</label>
+                <input className={inputCls} value={reference} onChange={e => setReference(e.target.value)} placeholder="Depto 301, timbre azul…" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Resumen */}
@@ -115,20 +242,53 @@ export default function CarritoPage() {
                 </div>
               ))}
             </div>
+
+            <div className="border-t border-[#F3E0D5] pt-4 space-y-2 mb-2">
+              <div className="flex justify-between text-sm text-[#2F7A77]">
+                <span>Subtotal</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-[#2F7A77]">
+                <span className="flex items-center gap-1.5">
+                  <Truck weight="fill" size={15} className="text-[#4FB0AB]" /> Despacho
+                </span>
+                <span>
+                  {quoting
+                    ? 'Cotizando…'
+                    : quote
+                      ? formatPrice(quote.cost)
+                      : region && comuna
+                        ? '—'
+                        : 'Ingresa comuna'}
+                </span>
+              </div>
+              {quote && (
+                <p className="text-xs text-[#2F7A77]/80 leading-snug">
+                  {quote.carrier} · {quote.service} · llega en {quote.etaMin}-{quote.etaMax} días hábiles
+                </p>
+              )}
+            </div>
+
             <div className="border-t border-[#F3E0D5] pt-4 mb-6">
               <div className="flex justify-between font-bold text-[#155E5B] text-lg">
                 <span>Total</span>
-                <span className="text-[#F0846E]">{formatPrice(total)}</span>
+                <span className="text-[#F0846E]">{formatPrice(grandTotal)}</span>
               </div>
             </div>
+
             <button
               onClick={handleCheckout}
-              disabled={loading}
+              disabled={loading || !addressComplete || !quote || quoting}
               className="w-full bg-[#F0846E] text-white py-4 rounded-xl font-medium hover:bg-[#E0654E] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-lg flex items-center justify-center gap-2"
             >
               <CreditCard weight="fill" size={20} />
               {loading ? 'Procesando...' : 'Pagar con Flow'}
             </button>
+            {!addressComplete && (
+              <p className="text-xs text-center text-[#F0846E] mt-3">
+                Completa tu dirección de despacho para continuar.
+              </p>
+            )}
             <div className="flex items-center justify-center gap-1.5 mt-3">
               <ShieldCheck weight="fill" size={14} className="text-[#4FB0AB]" />
               <p className="text-xs text-[#2F7A77]">Pago seguro · Tarjetas, débito y transferencia</p>

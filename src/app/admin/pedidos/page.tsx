@@ -27,6 +27,7 @@ export default async function PedidosPage() {
                 <tr className="bg-[#FFF6EE] border-b border-[#F3E0D5]">
                   <th className="text-left px-5 py-3 font-semibold text-[#155E5B]">ID</th>
                   <th className="text-left px-4 py-3 font-semibold text-[#155E5B]">Usuario</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[#155E5B]">Despacho</th>
                   <th className="text-right px-4 py-3 font-semibold text-[#155E5B]">Total</th>
                   <th className="text-center px-4 py-3 font-semibold text-[#155E5B]">Estado</th>
                   <th className="text-left px-4 py-3 font-semibold text-[#155E5B]">Fecha</th>
@@ -37,6 +38,14 @@ export default async function PedidosPage() {
                   <tr key={order.id} className="border-b border-[#F3E0D5] last:border-0 hover:bg-[#FFF1E8] transition-colors">
                     <td className="px-5 py-4 font-mono text-xs text-[#2F7A77]">{order.id.slice(0, 8)}…</td>
                     <td className="px-4 py-4 text-[#155E5B]">{order.user_email ?? '—'}</td>
+                    <td className="px-4 py-4 text-[#2F7A77]">
+                      {order.shipping_address?.comuna ? (
+                        <span className="text-xs">
+                          {order.shipping_address.comuna}
+                          {order.shipping_cost ? ` · $${order.shipping_cost.toLocaleString('es-CL')}` : ''}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td className="px-4 py-4 text-right font-semibold text-[#155E5B]">
                       ${order.total.toLocaleString('es-CL')}
                     </td>

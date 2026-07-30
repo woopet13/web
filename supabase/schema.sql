@@ -77,9 +77,17 @@ create table if not exists orders (
   external_reference text unique,
   mp_payment_id      text,
   notes              text,
+  shipping_cost      integer not null default 0,
+  shipping_method    text,
+  shipping_address   jsonb,
   created_at         timestamptz default now(),
   updated_at         timestamptz default now()
 );
+
+-- Columnas de despacho para tablas 'orders' ya existentes (idempotente).
+alter table orders add column if not exists shipping_cost    integer not null default 0;
+alter table orders add column if not exists shipping_method  text;
+alter table orders add column if not exists shipping_address jsonb;
 
 -- ------------------------------------------------------------
 -- Documentos de usuario
