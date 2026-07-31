@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'motion/react'
-import { Dog, Cat, PawPrint } from '@phosphor-icons/react'
+import { Dog, Cat, PawPrint, MagnifyingGlass } from '@phosphor-icons/react'
 import ProductCard from '@/components/ProductCard'
 import { Product } from '@/types'
 
@@ -24,12 +24,26 @@ export default function ProductsClient({
 }) {
   const [animal, setAnimal] = useState<AnimalFilter>(initialAnimal)
   const [category, setCategory] = useState<string>('Todas')
+  const [query, setQuery] = useState('')
 
-  // Categorías presentes en el catálogo (se actualizan solas al crear/asignar).
-  const categories = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean))).sort()
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const q = norm(query.trim())
+
+  // Subcategorías de la mascota (padre) seleccionada. Con "Todos" se muestran todas.
+  const categories = Array.from(
+    new Set(
+      allProducts
+        .filter(p => animal === 'all' || p.animal === animal)
+        .map(p => p.category)
+        .filter(Boolean),
+    ),
+  ).sort()
 
   const filtered = allProducts.filter(
-    p => (animal === 'all' || p.animal === animal) && (category === 'Todas' || p.category === category),
+    p =>
+      (animal === 'all' || p.animal === animal) &&
+      (category === 'Todas' || p.category === category) &&
+      (!q || norm(p.name).includes(q) || norm(p.description ?? '').includes(q)),
   )
 
   return (
@@ -49,12 +63,23 @@ export default function ProductsClient({
       </section>
 
       <div className="mx-auto max-w-6xl px-4 py-12">
+        {/* Buscador */}
+        <div className="relative mb-8 mx-auto max-w-md">
+          <MagnifyingGlass weight="bold" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2F7A77]" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar productos…"
+            className="w-full rounded-full border border-[#F3E0D5] bg-white py-3 pl-11 pr-4 text-sm text-[#155E5B] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#F0846E]/30 focus:border-[#F0846E]"
+          />
+        </div>
+
         {/* Filtro por mascota */}
         <div className="mb-6 flex flex-wrap justify-center gap-3">
           {ANIMALS.map(({ key, label, Icon }) => (
             <button
               key={key}
-              onClick={() => setAnimal(key)}
+              onClick={() => { setAnimal(key); setCategory('Todas') }}
               className={`flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold shadow-sm transition-all ${
                 animal === key
                   ? 'scale-105 bg-[#F0846E] text-white'

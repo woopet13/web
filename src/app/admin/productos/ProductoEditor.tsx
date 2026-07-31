@@ -44,22 +44,26 @@ export default function ProductoEditor({
   categories = [],
 }: {
   initial?: Producto
-  categories?: string[]
+  categories?: { name: string; animal: string }[]
 }) {
   const router = useRouter()
   const isNew = !initial?.id
 
+  const firstFor = (animal: string) => categories.find(c => c.animal === animal)?.name ?? ''
+
   const [form, setForm] = useState<Producto>(initial ?? {
     name: '', slug: '', description: '', long_description: '',
-    price: 0, image: '', category: categories[0] ?? '', animal: 'dog', weight: '',
+    price: 0, image: '', category: firstFor('dog'), animal: 'dog', weight: '',
     access: 'public', stock: 0,
     active: true, features: '', variants: [],
   })
 
-  // Incluye la categoría actual del producto aunque ya no esté en la lista.
-  const categoryOptions = form.category && !categories.includes(form.category)
-    ? [form.category, ...categories]
-    : categories
+  // Subcategorías de la mascota elegida. Incluye la categoría actual del
+  // producto aunque ya no esté en la lista (para no perderla al editar).
+  const forAnimal = categories.filter(c => c.animal === form.animal).map(c => c.name)
+  const categoryOptions = form.category && !forAnimal.includes(form.category)
+    ? [form.category, ...forAnimal]
+    : forAnimal
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -84,6 +88,11 @@ export default function ProductoEditor({
     setForm(prev => {
       const updated = { ...prev, [field]: value }
       if (field === 'name' && isNew) updated.slug = toSlug(value as string)
+      // Al cambiar de mascota, ajusta la subcategoría a una válida para ella.
+      if (field === 'animal') {
+        const available = categories.filter(c => c.animal === value).map(c => c.name)
+        if (!available.includes(prev.category)) updated.category = available[0] ?? ''
+      }
       return updated
     })
   }

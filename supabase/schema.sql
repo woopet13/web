@@ -49,18 +49,30 @@ create table if not exists products (
 
 -- ------------------------------------------------------------
 -- Categorías de productos (gestionables desde el admin)
+-- Jerarquía: la MASCOTA (animal) es la categoría padre (Perros/Gatos)
+-- y `name` es la subcategoría (Alimento, Arena, Snacks, ...).
+-- Una misma subcategoría puede existir para perro y para gato.
 -- ------------------------------------------------------------
 create table if not exists categories (
   id         uuid default gen_random_uuid() primary key,
-  name       text unique not null,
+  name       text not null,
+  animal     text,                        -- 'dog' | 'cat' (categoría padre)
   created_at timestamptz default now()
 );
 
--- Semilla: importa las categorías que ya usan los productos (idempotente).
-insert into categories (name)
-  select distinct category from products
-  where category is not null and category <> ''
-  on conflict (name) do nothing;
+-- Migración a jerarquía por mascota (idempotente).
+alter table categories add column if not exists animal text;
+alter table categories drop constraint if exists categories_name_key;
+create unique index if not exists categories_name_animal_key on categories (name, animal);
+
+-- Semilla: subcategorías por mascota, tomadas de los productos existentes.
+insert into categories (name, animal)
+  select distinct category, animal from products
+  where category is not null and category <> '' and animal in ('dog', 'cat')
+  on conflict (name, animal) do nothing;
+
+-- Limpia filas planas antiguas (sin mascota) tras crear las scopeadas.
+delete from categories where animal is null;
 
 -- ------------------------------------------------------------
 -- Blog posts
