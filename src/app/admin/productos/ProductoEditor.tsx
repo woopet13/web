@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { saveProduct, deleteProduct } from './actions'
 
-const CATEGORIES = ['Snacks Jerky', 'Meat Paste', 'Creamy', 'Alimento', 'Arena']
-
 interface Variant {
   id: string
   label: string
@@ -41,16 +39,27 @@ function toSlug(str: string) {
     .slice(0, 80)
 }
 
-export default function ProductoEditor({ initial }: { initial?: Producto }) {
+export default function ProductoEditor({
+  initial,
+  categories = [],
+}: {
+  initial?: Producto
+  categories?: string[]
+}) {
   const router = useRouter()
   const isNew = !initial?.id
 
   const [form, setForm] = useState<Producto>(initial ?? {
     name: '', slug: '', description: '', long_description: '',
-    price: 0, image: '', category: 'Snacks Jerky', animal: 'dog', weight: '',
+    price: 0, image: '', category: categories[0] ?? '', animal: 'dog', weight: '',
     access: 'public', stock: 0,
     active: true, features: '', variants: [],
   })
+
+  // Incluye la categoría actual del producto aunque ya no esté en la lista.
+  const categoryOptions = form.category && !categories.includes(form.category)
+    ? [form.category, ...categories]
+    : categories
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -169,13 +178,19 @@ export default function ProductoEditor({ initial }: { initial?: Producto }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-[#155E5B] mb-1.5">Categoría</label>
-            <select
-              value={form.category}
-              onChange={e => set('category', e.target.value)}
-              className="w-full border border-[#F3E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
-            >
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
+            {categoryOptions.length === 0 ? (
+              <p className="text-xs text-[#2F7A77] border border-[#F3E0D5] rounded-xl px-4 py-3 bg-white">
+                No hay categorías. Créalas en <span className="font-semibold">Categorías</span>.
+              </p>
+            ) : (
+              <select
+                value={form.category}
+                onChange={e => set('category', e.target.value)}
+                className="w-full border border-[#F3E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
+              >
+                {categoryOptions.map(c => <option key={c}>{c}</option>)}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-sm font-semibold text-[#155E5B] mb-1.5">Acceso</label>

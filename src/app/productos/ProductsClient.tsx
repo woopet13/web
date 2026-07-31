@@ -6,7 +6,6 @@ import { motion } from 'motion/react'
 import { Dog, Cat, PawPrint } from '@phosphor-icons/react'
 import ProductCard from '@/components/ProductCard'
 import { Product } from '@/types'
-import { CATEGORIES } from '@/lib/products'
 
 type AnimalFilter = 'all' | 'dog' | 'cat'
 
@@ -25,6 +24,9 @@ export default function ProductsClient({
 }) {
   const [animal, setAnimal] = useState<AnimalFilter>(initialAnimal)
   const [category, setCategory] = useState<string>('Todas')
+
+  // Categorías presentes en el catálogo (se actualizan solas al crear/asignar).
+  const categories = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean))).sort()
 
   const filtered = allProducts.filter(
     p => (animal === 'all' || p.animal === animal) && (category === 'Todas' || p.category === category),
@@ -67,7 +69,7 @@ export default function ProductsClient({
 
         {/* Filtro por categoría */}
         <div className="mb-10 flex flex-wrap justify-center gap-2">
-          {['Todas', ...CATEGORIES].map(cat => (
+          {['Todas', ...categories].map(cat => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}

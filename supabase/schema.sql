@@ -48,6 +48,21 @@ create table if not exists products (
 );
 
 -- ------------------------------------------------------------
+-- Categorías de productos (gestionables desde el admin)
+-- ------------------------------------------------------------
+create table if not exists categories (
+  id         uuid default gen_random_uuid() primary key,
+  name       text unique not null,
+  created_at timestamptz default now()
+);
+
+-- Semilla: importa las categorías que ya usan los productos (idempotente).
+insert into categories (name)
+  select distinct category from products
+  where category is not null and category <> ''
+  on conflict (name) do nothing;
+
+-- ------------------------------------------------------------
 -- Blog posts
 -- ------------------------------------------------------------
 create table if not exists blog_posts (
