@@ -5,8 +5,9 @@ import { formatBlogDate } from '@/lib/blog'
 import { getPosts } from '@/lib/blog-db'
 
 export const metadata = {
-  title: 'Blog | Woopet Pet Shop',
+  title: 'Blog',
   description: 'Consejos de nutrición, cuidados y snacks para perros y gatos.',
+  alternates: { canonical: '/blog' },
 }
 
 export const dynamic = 'force-dynamic'

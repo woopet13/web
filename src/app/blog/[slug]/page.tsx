@@ -1,17 +1,38 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, CalendarBlank, Tag } from '@phosphor-icons/react/dist/ssr'
+import type { Metadata } from 'next'
 import { marked } from 'marked'
 import { formatBlogDate } from '@/lib/blog'
 import { getPost } from '@/lib/blog-db'
+import { SITE_URL, DEFAULT_OG_IMAGE } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   const post = await getPost(slug)
   if (!post) return {}
-  return { title: `${post.title} | Woopet`, description: post.excerpt }
+
+  const url = `${SITE_URL}/blog/${post.slug}`
+  return {
+    title: post.title,
+    description: post.excerpt,
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: {
+      type: 'article',
+      url,
+      title: post.title,
+      description: post.excerpt,
+      publishedTime: post.date,
+      images: [{ url: DEFAULT_OG_IMAGE, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+    },
+  }
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {

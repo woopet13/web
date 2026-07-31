@@ -2,8 +2,9 @@ import ProductsClient from './ProductsClient'
 import { getProducts } from '@/lib/products-db'
 
 export const metadata = {
-  title: 'Productos | Woopet Pet Shop',
-  description: 'Snacks, alimento completo y arena para perros y gatos. Marcas Wanpy y Cateko.',
+  title: 'Productos',
+  description: 'Snacks, alimento completo y arena para perros y gatos. Marcas Wanpy y Cateko. Despacho a todo Chile.',
+  alternates: { canonical: '/productos' },
 }
 
 // Siempre refleja lo que hay en la base (el admin es la fuente de verdad).

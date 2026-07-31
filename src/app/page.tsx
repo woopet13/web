@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   ArrowRight, Truck, ShieldCheck, Heart, PawPrint, Dog, Cat, Storefront, Leaf, Star,
@@ -7,6 +8,11 @@ import type { Product } from '@/types'
 import HeroSlider from '@/components/HeroSlider'
 import ProductSlider from '@/components/ProductSlider'
 import PetWidget from '@/components/PetWidget'
+import { SITE_URL, SITE_NAME, absoluteUrl } from '@/lib/site'
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
 
 const FEATURED_SLUGS = [
   'snack-perro-pollo-jerky', 'creamy-gato-atun', 'alimento-perro-adulto-pollo',
@@ -42,8 +48,26 @@ export default async function HomePage() {
   const dogs = allDogs.slice(0, 8)
   const cats = allCats.slice(0, 8)
 
+  const orgJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: absoluteUrl('/logo.jpeg'),
+    description: 'Pet shop online en Chile: snacks, alimento y arena para perros y gatos.',
+    sameAs: ['https://instagram.com'],
+  }
+  const siteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: SITE_URL,
+  }
+
   return (
     <div className="overflow-hidden">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
       <HeroSlider />
 
       {/* Franja de beneficios (marquee) */}
