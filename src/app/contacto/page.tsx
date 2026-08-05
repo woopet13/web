@@ -9,17 +9,33 @@ const WHATSAPP_NUMBER = '56984197351'
 export default function ContactoPage() {
   const [form, setForm] = useState({ nombre: '', email: '', asunto: '', mensaje: '' })
   const [enviado, setEnviado] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const texto = `Hola! Soy ${form.nombre} (${form.email}).\n\nAsunto: ${form.asunto}\n\n${form.mensaje}`
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(texto)}`
-    window.open(url, '_blank', 'noopener,noreferrer')
-    setEnviado(true)
+    setSending(true)
+    setError('')
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'No se pudo enviar el mensaje. Intenta por WhatsApp.')
+      } else {
+        setEnviado(true)
+      }
+    } catch {
+      setError('Error de conexión. Intenta por WhatsApp.')
+    }
+    setSending(false)
   }
 
   return (
@@ -192,13 +208,28 @@ export default function ContactoPage() {
                   />
                 </div>
 
+                {error && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">{error}</p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full bg-[#F0846E] text-white py-3 rounded-full font-medium hover:bg-[#E0654E] transition-colors flex items-center justify-center gap-2 shadow-md"
+                  disabled={sending}
+                  className="w-full bg-[#F0846E] text-white py-3 rounded-full font-medium hover:bg-[#E0654E] transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <PaperPlaneTilt weight="fill" size={18} />
-                  Enviar por WhatsApp
+                  {sending ? 'Enviando…' : 'Enviar mensaje'}
                 </button>
+
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('¡Hola Woopet! Tengo una consulta 🐾')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full border border-[#F3E0D5] text-[#155E5B] py-2.5 rounded-full font-medium hover:bg-[#FFF1E8] transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <WhatsappLogo weight="fill" size={16} className="text-[#25D366]" />
+                  O escríbenos por WhatsApp
+                </a>
               </form>
             </>
           )}
