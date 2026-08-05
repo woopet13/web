@@ -18,6 +18,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
     ...data,
     animal: data.animal === 'cat' ? 'cat' : 'dog',
     weight: data.weight ?? '',
+    low_stock_threshold: data.low_stock_threshold ?? 5,
     features: Array.isArray(data.features) ? data.features.join('\n') : '',
     variants: data.variants ?? [],
   }

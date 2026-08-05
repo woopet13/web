@@ -22,6 +22,7 @@ interface Row {
   weight: string | null
   sku: string | null
   box_units: number | null
+  low_stock_threshold: number | null
 }
 
 function toArray<T>(v: unknown): T[] {
@@ -60,6 +61,7 @@ function mapRow(r: Row): Product {
     variants: toArray<ProductVariant>(r.variants),
     access: r.access === 'members' ? 'members' : 'public',
     stock: r.stock ?? 0,
+    lowStockThreshold: r.low_stock_threshold ?? 5,
   }
 }
 

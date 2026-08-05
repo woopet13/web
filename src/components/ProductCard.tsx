@@ -13,10 +13,12 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
   const [from, to] = product.gradient ?? ['#3FA9A2', '#F0846E']
+  const soldOut = product.stock <= 0
 
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
+    if (soldOut) return
     addItem(product)
     setAdded(true)
     setTimeout(() => setAdded(false), 1400)
@@ -74,6 +76,14 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#155E5B] shadow-sm">
             <AnimalIcon weight="fill" size={17} />
           </span>
+
+          {soldOut && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/55 backdrop-blur-[1px]">
+              <span className="rounded-full bg-[#155E5B] px-4 py-1.5 text-sm font-bold uppercase tracking-wide text-white shadow-md">
+                Agotado
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Contenido */}
@@ -101,20 +111,26 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           <div className="mt-auto flex items-center justify-between gap-2">
             <span className="text-lg font-extrabold text-[#F0846E]">{formatPrice(product.price)}</span>
 
-            <motion.button
-              onClick={handleAdd}
-              whileTap={{ scale: 0.9 }}
-              aria-label="Agregar al carrito"
-              className={`flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors ${
-                added ? 'bg-[#4FB0AB]' : 'bg-[#155E5B] hover:bg-[#0F4644]'
-              }`}
-            >
-              {added ? (
-                <><Check weight="bold" size={14} /> Agregado</>
-              ) : (
-                <><Plus weight="bold" size={14} /> Agregar</>
-              )}
-            </motion.button>
+            {soldOut ? (
+              <span className="flex items-center gap-1 rounded-full bg-[#F3E0D5] px-3 py-2 text-xs font-bold text-[#9a8578] cursor-not-allowed">
+                Agotado
+              </span>
+            ) : (
+              <motion.button
+                onClick={handleAdd}
+                whileTap={{ scale: 0.9 }}
+                aria-label="Agregar al carrito"
+                className={`flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors ${
+                  added ? 'bg-[#4FB0AB]' : 'bg-[#155E5B] hover:bg-[#0F4644]'
+                }`}
+              >
+                {added ? (
+                  <><Check weight="bold" size={14} /> Agregado</>
+                ) : (
+                  <><Plus weight="bold" size={14} /> Agregar</>
+                )}
+              </motion.button>
+            )}
           </div>
 
           <span className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-[#2F7A77] opacity-0 transition-opacity group-hover:opacity-100">

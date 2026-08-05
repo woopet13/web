@@ -24,6 +24,7 @@ interface Producto {
   weight: string
   access: 'public' | 'members'
   stock: number
+  low_stock_threshold: number
   active: boolean
   features: string
   variants: Variant[]
@@ -54,7 +55,7 @@ export default function ProductoEditor({
   const [form, setForm] = useState<Producto>(initial ?? {
     name: '', slug: '', description: '', long_description: '',
     price: 0, image: '', category: firstFor('dog'), animal: 'dog', weight: '',
-    access: 'public', stock: 0,
+    access: 'public', stock: 0, low_stock_threshold: 5,
     active: true, features: '', variants: [],
   })
 
@@ -134,6 +135,7 @@ export default function ProductoEditor({
       weight: form.weight,
       access: form.access,
       stock: form.stock,
+      low_stock_threshold: form.low_stock_threshold,
       active: form.active,
       features: form.features.split('\n').filter(Boolean),
       variants: form.variants,
@@ -238,8 +240,8 @@ export default function ProductoEditor({
           </div>
         </div>
 
-        {/* Precio y Stock */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Precio, Stock y Stock crítico */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-semibold text-[#155E5B] mb-1.5">Precio base (CLP)</label>
             <input
@@ -258,7 +260,25 @@ export default function ProductoEditor({
               className="w-full border border-[#F3E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
             />
           </div>
+          <div>
+            <label className="block text-sm font-semibold text-[#155E5B] mb-1.5">
+              Stock crítico
+              <span className="ml-1 text-xs font-normal text-[#2F7A77]" title="Avisa cuando el stock llega a este valor o menos">ⓘ</span>
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={form.low_stock_threshold}
+              onChange={e => set('low_stock_threshold', Number(e.target.value))}
+              className="w-full border border-[#F3E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
+            />
+          </div>
         </div>
+        {form.stock === 0 ? (
+          <p className="-mt-2 text-xs font-semibold text-red-600">⚠ Sin stock: el producto aparece «Agotado» en la tienda.</p>
+        ) : form.stock <= form.low_stock_threshold ? (
+          <p className="-mt-2 text-xs font-semibold text-[#F2A24E]">⚠ Stock bajo: quedan {form.stock} (umbral {form.low_stock_threshold}).</p>
+        ) : null}
 
         {/* Imagen */}
         <div>

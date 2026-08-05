@@ -43,9 +43,13 @@ create table if not exists products (
   weight                text,          -- presentación, p.ej. "100 g"
   sku                   text,
   box_units             integer,       -- se vende por caja de N unidades
+  low_stock_threshold   integer not null default 5,  -- umbral de stock crítico
   created_at            timestamptz default now(),
   updated_at            timestamptz default now()
 );
+
+-- Umbral de stock crítico para tablas 'products' ya existentes (idempotente).
+alter table products add column if not exists low_stock_threshold integer not null default 5;
 
 -- ------------------------------------------------------------
 -- Categorías de productos (gestionables desde el admin)

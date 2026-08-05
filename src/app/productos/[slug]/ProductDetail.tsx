@@ -19,6 +19,7 @@ export default function ProductDetail({ product, related = [] }: { product: Prod
 
   const [from, to] = product.gradient ?? ['#3FA9A2', '#F0846E']
   const AnimalIcon = product.animal === 'dog' ? Dog : Cat
+  const soldOut = product.stock <= 0
 
   const waText = encodeURIComponent(
     `¡Hola Woopet! Me interesa ${product.name} (${product.sku ?? ''}). ¿Me ayudan con mi pedido? 🐾`,
@@ -26,6 +27,7 @@ export default function ProductDetail({ product, related = [] }: { product: Prod
   const waUrl = `https://wa.me/56984197351?text=${waText}`
 
   function handleAddToCart() {
+    if (soldOut) return
     for (let i = 0; i < qty; i++) addItem(product)
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
@@ -120,25 +122,33 @@ export default function ProductDetail({ product, related = [] }: { product: Prod
           )}
 
           {/* Cantidad */}
-          <div className="mb-4 flex items-center gap-3">
-            <span className="text-sm font-semibold text-[#155E5B]">Cantidad</span>
-            <div className="flex items-center gap-3 rounded-full bg-white px-3 py-1.5 ring-1 ring-[#F3E0D5]">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="h-7 w-7 rounded-full text-lg font-bold text-[#155E5B] hover:bg-[#FFF1E8]">−</button>
-              <span className="w-6 text-center font-bold text-[#155E5B]">{qty}</span>
-              <button onClick={() => setQty(q => q + 1)} className="h-7 w-7 rounded-full text-lg font-bold text-[#155E5B] hover:bg-[#FFF1E8]">+</button>
+          {!soldOut && (
+            <div className="mb-4 flex items-center gap-3">
+              <span className="text-sm font-semibold text-[#155E5B]">Cantidad</span>
+              <div className="flex items-center gap-3 rounded-full bg-white px-3 py-1.5 ring-1 ring-[#F3E0D5]">
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} className="h-7 w-7 rounded-full text-lg font-bold text-[#155E5B] hover:bg-[#FFF1E8]">−</button>
+                <span className="w-6 text-center font-bold text-[#155E5B]">{qty}</span>
+                <button onClick={() => setQty(q => q + 1)} className="h-7 w-7 rounded-full text-lg font-bold text-[#155E5B] hover:bg-[#FFF1E8]">+</button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* CTA */}
-          <motion.button
-            onClick={handleAddToCart}
-            whileTap={{ scale: 0.98 }}
-            className="mb-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#F0846E] py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-[#E0654E]"
-          >
-            {added
-              ? <><CheckCircle weight="fill" size={24} /> ¡Agregado al carrito!</>
-              : <><ShoppingCartSimple weight="fill" size={24} /> Agregar al carrito</>}
-          </motion.button>
+          {soldOut ? (
+            <div className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F3E0D5] py-4 text-lg font-bold text-[#9a8578] cursor-not-allowed">
+              Producto agotado
+            </div>
+          ) : (
+            <motion.button
+              onClick={handleAddToCart}
+              whileTap={{ scale: 0.98 }}
+              className="mb-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#F0846E] py-4 text-lg font-bold text-white shadow-md transition-colors hover:bg-[#E0654E]"
+            >
+              {added
+                ? <><CheckCircle weight="fill" size={24} /> ¡Agregado al carrito!</>
+                : <><ShoppingCartSimple weight="fill" size={24} /> Agregar al carrito</>}
+            </motion.button>
+          )}
           {added && (
             <Link href="/carrito" className="mb-2 flex w-full items-center justify-center text-sm font-semibold text-[#F0846E] hover:underline">
               Ir al carrito →

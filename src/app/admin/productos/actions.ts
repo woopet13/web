@@ -9,7 +9,7 @@ interface ProductPayload {
   id?: string
   name: string; slug: string; description: string; long_description: string
   price: number; image: string; category: string; animal: string; weight: string
-  access: string; stock: number; active: boolean
+  access: string; stock: number; low_stock_threshold: number; active: boolean
   features: string[]; variants: Variant[]
 }
 

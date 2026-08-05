@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { PencilSimple, MagnifyingGlass } from '@phosphor-icons/react'
+import { PencilSimple, MagnifyingGlass, Warning } from '@phosphor-icons/react'
 import { formatPrice } from '@/lib/products'
 
 interface Producto {
@@ -11,8 +11,23 @@ interface Producto {
   category: string
   price: number
   stock: number
+  low_stock_threshold: number | null
   access: string
   active: boolean
+}
+
+function StockBadge({ stock, threshold }: { stock: number; threshold: number }) {
+  if (stock <= 0) {
+    return <span className="inline-block text-xs px-2.5 py-1 rounded-full font-semibold bg-red-100 text-red-700">Agotado</span>
+  }
+  if (stock <= threshold) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold bg-[#F2A24E]/20 text-[#B26A1E]">
+        <Warning weight="fill" size={12} /> Bajo · {stock}
+      </span>
+    )
+  }
+  return <span className="text-[#2F7A77]">{stock}</span>
 }
 
 function norm(s: string) {
@@ -26,8 +41,27 @@ export default function ProductosTable({ productos }: { productos: Producto[] })
     ? productos.filter(p => norm(p.name).includes(q) || norm(p.category ?? '').includes(q))
     : productos
 
+  const threshold = (p: Producto) => p.low_stock_threshold ?? 5
+  const agotados = productos.filter(p => p.stock <= 0).length
+  const bajos = productos.filter(p => p.stock > 0 && p.stock <= threshold(p)).length
+
   return (
     <>
+      {(agotados > 0 || bajos > 0) && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {agotados > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-1.5 font-medium">
+              <Warning weight="fill" size={14} /> {agotados} agotado{agotados === 1 ? '' : 's'}
+            </span>
+          )}
+          {bajos > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF6EE] border border-[#F2A24E]/40 text-[#B26A1E] text-sm px-3 py-1.5 font-medium">
+              <Warning weight="fill" size={14} /> {bajos} con stock bajo
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="relative mb-4 max-w-sm">
         <MagnifyingGlass weight="bold" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2F7A77]" />
         <input
@@ -57,7 +91,7 @@ export default function ProductosTable({ productos }: { productos: Producto[] })
                 <td className="px-5 py-4 font-medium text-[#155E5B]">{p.name}</td>
                 <td className="px-4 py-4 text-[#2F7A77]">{p.category}</td>
                 <td className="px-4 py-4 text-right text-[#155E5B]">{formatPrice(p.price)}</td>
-                <td className="px-4 py-4 text-center text-[#2F7A77]">{p.stock}</td>
+                <td className="px-4 py-4 text-center"><StockBadge stock={p.stock} threshold={p.low_stock_threshold ?? 5} /></td>
                 <td className="px-4 py-4 text-center">
                   <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
                     p.access === 'members'

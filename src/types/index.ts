@@ -27,6 +27,8 @@ export interface Product {
   gradient?: [string, string]
   access: 'public' | 'members'
   stock: number
+  /** Umbral de stock crítico: avisa cuando stock <= este valor */
+  lowStockThreshold?: number
   slug: string
   features?: string[]
   variants?: ProductVariant[]
