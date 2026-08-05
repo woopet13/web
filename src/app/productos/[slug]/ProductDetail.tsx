@@ -23,7 +23,7 @@ export default function ProductDetail({ product, related = [] }: { product: Prod
   const waText = encodeURIComponent(
     `¡Hola Woopet! Me interesa ${product.name} (${product.sku ?? ''}). ¿Me ayudan con mi pedido? 🐾`,
   )
-  const waUrl = `https://wa.me/56940547049?text=${waText}`
+  const waUrl = `https://wa.me/56984197351?text=${waText}`
 
   function handleAddToCart() {
     for (let i = 0; i < qty; i++) addItem(product)

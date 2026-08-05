@@ -28,8 +28,8 @@ export default function Footer() {
               <EnvelopeSimple weight="fill" size={16} /> hola@woopet.cl
             </a>
             <span className="text-[#FFF6EE]/40">·</span>
-            <a href="https://wa.me/56940547049" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[#F2A24E] transition-colors hover:text-[#FFF6EE]">
-              <WhatsappLogo weight="fill" size={16} /> +56 9 4054 7049
+            <a href="https://wa.me/56984197351" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[#F2A24E] transition-colors hover:text-[#FFF6EE]">
+              <WhatsappLogo weight="fill" size={16} /> +56 9 8419 7351
             </a>
           </div>
           <p className="mt-5 flex items-center gap-2 text-xs text-[#FFF6EE]/70">

@@ -44,11 +44,35 @@ export default function CarritoPage() {
     [region],
   )
 
-  // Al cambiar de región, resetea la comuna y la cotización.
+  // Restaura los datos de despacho (sobreviven al redirect de login).
   useEffect(() => {
+    const saved = localStorage.getItem('woopet-checkout')
+    if (!saved) return
+    try {
+      const d = JSON.parse(saved)
+      setName(d.name ?? '')
+      setPhone(d.phone ?? '')
+      setRegion(d.region ?? '')
+      setComuna(d.comuna ?? '')
+      setAddress(d.address ?? '')
+      setReference(d.reference ?? '')
+    } catch {}
+  }, [])
+
+  // Guarda los datos de despacho ante cualquier cambio.
+  useEffect(() => {
+    localStorage.setItem(
+      'woopet-checkout',
+      JSON.stringify({ name, phone, region, comuna, address, reference }),
+    )
+  }, [name, phone, region, comuna, address, reference])
+
+  // Al cambiar de región (elegida por el usuario), resetea la comuna.
+  function changeRegion(value: string) {
+    setRegion(value)
     setComuna('')
     setQuote(null)
-  }, [region])
+  }
 
   // Cotiza el despacho con Blue cuando hay región + comuna (y al cambiar el carrito).
   useEffect(() => {
@@ -202,7 +226,7 @@ export default function CarritoPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Región</label>
-                <select className={inputCls} value={region} onChange={e => setRegion(e.target.value)}>
+                <select className={inputCls} value={region} onChange={e => changeRegion(e.target.value)}>
                   <option value="">Selecciona…</option>
                   {REGIONS.map(r => (
                     <option key={r.code} value={r.name}>{r.name}</option>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { MapPin, Phone, Envelope, WhatsappLogo, PaperPlaneTilt } from '@phosphor-icons/react'
 
-const WHATSAPP_NUMBER = '56940547049'
+const WHATSAPP_NUMBER = '56984197351'
 
 export default function ContactoPage() {
   const [form, setForm] = useState({ nombre: '', email: '', asunto: '', mensaje: '' })
@@ -73,7 +73,7 @@ export default function ContactoPage() {
                   rel="noopener noreferrer"
                   className="text-[#F0846E] text-sm hover:underline"
                 >
-                  +56 9 4054 7049
+                  +56 9 8419 7351
                 </a>
               </div>
             </div>
