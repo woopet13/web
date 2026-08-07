@@ -121,6 +121,21 @@ alter table orders add column if not exists shipping_method  text;
 alter table orders add column if not exists shipping_address jsonb;
 
 -- ------------------------------------------------------------
+-- Clientes (se registran solos al comprar; guest checkout)
+-- ------------------------------------------------------------
+create table if not exists customers (
+  id         uuid default gen_random_uuid() primary key,
+  email      text unique not null,
+  name       text,
+  phone      text,
+  region     text,
+  comuna     text,
+  address    text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- ------------------------------------------------------------
 -- Documentos de usuario
 -- ------------------------------------------------------------
 create table if not exists user_documents (

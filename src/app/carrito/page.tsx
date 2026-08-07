@@ -7,7 +7,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 import { REGIONS } from '@/lib/chile-regions'
 
 interface ShippingQuote {
@@ -26,10 +25,10 @@ const inputCls =
 export default function CarritoPage() {
   const { items, removeItem, updateQuantity, total, clearCart } = useCart()
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   // Datos de envío
   const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState('')
   const [comuna, setComuna] = useState('')
@@ -47,25 +46,33 @@ export default function CarritoPage() {
   // Restaura los datos de despacho (sobreviven al redirect de login).
   useEffect(() => {
     const saved = localStorage.getItem('woopet-checkout')
-    if (!saved) return
-    try {
-      const d = JSON.parse(saved)
-      setName(d.name ?? '')
-      setPhone(d.phone ?? '')
-      setRegion(d.region ?? '')
-      setComuna(d.comuna ?? '')
-      setAddress(d.address ?? '')
-      setReference(d.reference ?? '')
-    } catch {}
+    if (saved) {
+      try {
+        const d = JSON.parse(saved)
+        setName(d.name ?? '')
+        setEmail(d.email ?? '')
+        setPhone(d.phone ?? '')
+        setRegion(d.region ?? '')
+        setComuna(d.comuna ?? '')
+        setAddress(d.address ?? '')
+        setReference(d.reference ?? '')
+      } catch {}
+    }
+    // Si hay sesión, prellena email y nombre.
+    createClient().auth.getUser().then(({ data }) => {
+      const u = data.user as { email?: string; full_name?: string } | null
+      if (u?.email) setEmail(prev => prev || u.email!)
+      if (u?.full_name) setName(prev => prev || u.full_name!)
+    }).catch(() => {})
   }, [])
 
   // Guarda los datos de despacho ante cualquier cambio.
   useEffect(() => {
     localStorage.setItem(
       'woopet-checkout',
-      JSON.stringify({ name, phone, region, comuna, address, reference }),
+      JSON.stringify({ name, email, phone, region, comuna, address, reference }),
     )
-  }, [name, phone, region, comuna, address, reference])
+  }, [name, email, phone, region, comuna, address, reference])
 
   // Al cambiar de región (elegida por el usuario), resetea la comuna.
   function changeRegion(value: string) {
@@ -105,18 +112,15 @@ export default function CarritoPage() {
 
   const shippingCost = quote?.cost ?? 0
   const grandTotal = total + shippingCost
-  const addressComplete = Boolean(name && phone && region && comuna && address)
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const addressComplete = Boolean(name && emailOk && phone && region && comuna && address)
 
   async function handleCheckout() {
     if (!addressComplete || !quote) return
     setLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase.auth.getUser()
-
-    if (!data.user) {
-      router.push('/login?next=/carrito')
-      return
-    }
+    // No exige login: si hay sesión, se asocia el pedido; si no, compra como invitado.
+    const { data } = await createClient().auth.getUser()
+    const userId = (data.user as { id?: string } | null)?.id ?? null
 
     try {
       const res = await fetch('/api/flow/create', {
@@ -133,8 +137,8 @@ export default function CarritoPage() {
             etaMax: quote.etaMax,
           },
           address: { name, phone, region, comuna, address, reference },
-          email: data.user.email,
-          userId: data.user.id,
+          email,
+          userId,
         }),
       })
       const json = await res.json()
@@ -219,6 +223,10 @@ export default function CarritoPage() {
               <div>
                 <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Nombre de quien recibe</label>
                 <input className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="Nombre y apellido" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Email</label>
+                <input type="email" className={inputCls} value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#155E5B] mb-1.5">Teléfono</label>

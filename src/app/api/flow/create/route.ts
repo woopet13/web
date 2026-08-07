@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPayment } from '@/lib/flow'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { upsertCustomer } from '@/lib/customers-db'
 
 interface ShippingInfo {
   cost: number
@@ -10,6 +11,15 @@ interface ShippingInfo {
   etaMax?: number
 }
 
+interface Address {
+  name?: string
+  phone?: string
+  region?: string
+  comuna?: string
+  address?: string
+  reference?: string
+}
+
 export async function POST(req: NextRequest) {
   const { items, total, shipping, address, email, userId } = await req.json()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!
@@ -17,8 +27,19 @@ export async function POST(req: NextRequest) {
 
   const shippingCost = Math.round((shipping as ShippingInfo)?.cost ?? 0)
   const grandTotal = Math.round(total) + shippingCost
+  const addr = (address ?? {}) as Address
 
   try {
+    // Registra al cliente automáticamente (no bloquea el pago si falla).
+    upsertCustomer({
+      email,
+      name: addr.name,
+      phone: addr.phone,
+      region: addr.region,
+      comuna: addr.comuna,
+      address: addr.address,
+    }).catch(e => console.error('[customers] upsert falló:', e))
+
     const supabase = createAdminClient()
     const [, payment] = await Promise.all([
       supabase.from('orders').insert({
