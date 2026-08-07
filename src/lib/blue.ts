@@ -23,8 +23,8 @@ export interface ShippingQuote {
   service: string
   carrier: 'Blue Express'
   weightKg: number
-  /** De dónde salió el valor: API real de Blue o tabla de respaldo */
-  source: 'blue-api' | 'tarifa-zona'
+  /** De dónde salió el valor: API real de Blue o tarifario oficial */
+  source: 'blue-api' | 'tarifa-blue'
 }
 
 // ------------------------------------------------------------
@@ -46,37 +46,67 @@ interface WeighableItem {
   quantity: number
 }
 
-// Peso facturable del carrito: suma de pesos por cantidad + embalaje,
-// con un mínimo razonable (Blue cobra desde ~1 kg).
+// Peso facturable del carrito: suma de pesos por cantidad + embalaje.
 export function estimateCartWeightKg(items: WeighableItem[]): number {
   const content = items.reduce((sum, i) => sum + parseWeightKg(i.weight) * (i.quantity ?? 1), 0)
   const packaging = 0.2 // caja/relleno
-  return Math.max(1, Math.round((content + packaging) * 10) / 10)
+  return Math.max(0.3, Math.round((content + packaging) * 10) / 10)
 }
 
 // ------------------------------------------------------------
-// Respaldo: tarifa por zona (CLP). base = hasta 1 kg; extra = por kg adicional.
+// Tarifario oficial Blue Express — Ecommerce Masivos, Terrestre Express,
+// ENTREGA A DOMICILIO (IVA incluido). Origen: todo Chile.
+// Columnas por tramo de peso: [XS 0-0.5kg, S 0.5-3kg, M 3-6kg, L 6-16kg, XL 16-25kg].
+// Sobre 25 kg: +$320 por kilo adicional. Filas por región de destino.
 // ------------------------------------------------------------
-const ZONE_TARIFF: Record<ShippingZone, { base: number; perKg: number; etaMin: number; etaMax: number }> = {
-  rm:      { base: 3290, perKg: 900,  etaMin: 1, etaMax: 2 },
-  centro:  { base: 4490, perKg: 1100, etaMin: 2, etaMax: 3 },
-  lejano:  { base: 5990, perKg: 1400, etaMin: 3, etaMax: 5 },
-  extremo: { base: 8990, perKg: 2200, etaMin: 5, etaMax: 8 },
+type Tramo = [number, number, number, number, number]
+
+const BLUE_TARIFF: Record<string, Tramo> = {
+  'Arica y Parinacota':   [7150, 8300, 12400, 17000, 25000],
+  'Tarapacá':             [6550, 7400, 10700, 15500, 23000],
+  'Antofagasta':          [6300, 7000, 9900, 14000, 21000],
+  'Atacama':              [4850, 5900, 7700, 9900, 13800],
+  'Coquimbo':             [4600, 5300, 7000, 9600, 12800],
+  'Valparaíso':           [3900, 4500, 6000, 7700, 9700],
+  'Región Metropolitana': [3100, 3650, 4700, 5700, 7600],
+  "O'Higgins":            [4000, 4800, 6400, 8300, 11300],
+  'Maule':                [4200, 5200, 6700, 8900, 12100],
+  'Ñuble':                [4600, 5400, 7200, 9200, 12600],
+  'Biobío':               [4700, 5700, 7300, 9500, 12800],
+  'La Araucanía':         [4950, 5900, 7700, 9900, 13800],
+  'Los Ríos':             [5300, 6100, 8300, 10000, 14200],
+  'Los Lagos':            [5300, 6100, 8300, 10000, 14200],
+  'Aysén':                [8000, 9500, 14000, 21500, 28500],
+  'Magallanes':           [8000, 9500, 14000, 21500, 28500],
 }
 
-function tarifaPorZona(regionName: string, weightKg: number): ShippingQuote {
-  const zone = zoneForComuna(regionName)
-  const t = ZONE_TARIFF[zone]
-  const extraKg = Math.max(0, Math.ceil(weightKg - 1))
-  const cost = Math.round((t.base + extraKg * t.perKg) / 10) * 10
+// ETA estimada por zona (días hábiles); el tarifario no la incluye.
+const ETA: Record<ShippingZone, [number, number]> = {
+  rm: [1, 2], centro: [2, 3], lejano: [3, 5], extremo: [5, 8],
+}
+
+// Índice de columna según el peso (kg).
+function tramoIndex(kg: number): number {
+  if (kg <= 0.5) return 0
+  if (kg <= 3) return 1
+  if (kg <= 6) return 2
+  if (kg <= 16) return 3
+  return 4
+}
+
+function tarifaBlue(regionName: string, weightKg: number): ShippingQuote {
+  const row = BLUE_TARIFF[regionName] ?? BLUE_TARIFF['Región Metropolitana']
+  let cost = row[tramoIndex(weightKg)]
+  if (weightKg > 25) cost += Math.ceil(weightKg - 25) * 320 // adicional por kilo
+  const [etaMin, etaMax] = ETA[zoneForComuna(regionName)]
   return {
     cost,
-    etaMin: t.etaMin,
-    etaMax: t.etaMax,
-    service: 'Express',
+    etaMin,
+    etaMax,
+    service: 'Express a domicilio',
     carrier: 'Blue Express',
     weightKg,
-    source: 'tarifa-zona',
+    source: 'tarifa-blue',
   }
 }
 
@@ -151,5 +181,5 @@ export async function quoteShipping(input: {
   weightKg: number
 }): Promise<ShippingQuote> {
   const fromApi = await cotizarBlueApi(input.comuna, input.weightKg)
-  return fromApi ?? tarifaPorZona(input.regionName, input.weightKg)
+  return fromApi ?? tarifaBlue(input.regionName, input.weightKg)
 }
