@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPaymentStatus } from '@/lib/flow'
 import { pool } from '@/lib/db'
 import {
-  sendMail, ADMIN_EMAIL, ORDER_RECIPIENTS, orderConfirmationEmail, adminSaleEmail, lowStockEmail,
+  sendMail, ADMIN_EMAILS, ORDER_RECIPIENTS, orderConfirmationEmail, adminSaleEmail, lowStockEmail,
   type OrderForEmail,
 } from '@/lib/mail'
 
@@ -87,8 +87,9 @@ export async function POST(req: NextRequest) {
         sendMail({ to: order.user_email, ...orderConfirmationEmail(orderForEmail) }),
         ...ORDER_RECIPIENTS.map(to => sendMail({ to, ...sale })),
       ]
-      if (lowStock.length && ADMIN_EMAIL) {
-        jobs.push(sendMail({ to: ADMIN_EMAIL, ...lowStockEmail(lowStock) }))
+      if (lowStock.length) {
+        const stock = lowStockEmail(lowStock)
+        ADMIN_EMAILS.forEach(to => jobs.push(sendMail({ to, ...stock })))
       }
       await Promise.allSettled(jobs)
     }

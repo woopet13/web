@@ -13,13 +13,17 @@ const USER = process.env.SMTP_USER
 const PASS = process.env.SMTP_PASS
 const FROM = process.env.MAIL_FROM ?? (USER ? `Woopet <${USER}>` : undefined)
 
-export const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL ?? USER ?? ''
+function list(v?: string): string[] {
+  return (v ?? '').split(',').map(s => s.trim()).filter(Boolean)
+}
 
-// Destinatarios de los avisos de venta (coma-separados). Por defecto, el admin.
-export const ORDER_RECIPIENTS: string[] = (process.env.ORDERS_NOTIFY_EMAIL ?? ADMIN_EMAIL ?? '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean)
+// Destinatarios de avisos admin (contacto, stock). Coma-separados.
+export const ADMIN_EMAILS: string[] = list(process.env.ADMIN_NOTIFY_EMAIL ?? USER)
+export const ADMIN_EMAIL = ADMIN_EMAILS[0] ?? '' // compat
+
+// Destinatarios de los avisos de venta. Por defecto, los admin.
+const orderList = list(process.env.ORDERS_NOTIFY_EMAIL)
+export const ORDER_RECIPIENTS: string[] = orderList.length ? orderList : ADMIN_EMAILS
 
 const globalForMail = globalThis as unknown as { _mailer?: nodemailer.Transporter }
 
