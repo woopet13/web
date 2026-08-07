@@ -34,15 +34,55 @@ function getTransporter(): nodemailer.Transporter | null {
   return globalForMail._mailer
 }
 
+// Envío por API HTTP de Resend. Necesario en hosts que bloquean SMTP
+// (p.ej. Railway). Se usa si RESEND_API_KEY está definida.
+async function sendViaResend(opts: {
+  to: string
+  subject: string
+  html: string
+  replyTo?: string
+}): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY!
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: FROM ?? 'Woopet <onboarding@resend.dev>',
+        to: [opts.to],
+        subject: opts.subject,
+        html: opts.html,
+        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+      }),
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!res.ok) {
+      console.error('[mail] Resend error:', res.status, await res.text().catch(() => ''))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[mail] Resend fetch error:', err)
+    return false
+  }
+}
+
 export async function sendMail(opts: {
   to: string
   subject: string
   html: string
   replyTo?: string
 }): Promise<boolean> {
+  if (!opts.to) return false
+
+  // Preferimos Resend (HTTP) si está configurado; si no, SMTP.
+  if (process.env.RESEND_API_KEY) {
+    return sendViaResend(opts)
+  }
+
   const transporter = getTransporter()
-  if (!transporter || !opts.to) {
-    console.warn('[mail] SMTP no configurado o destinatario vacío — no se envía:', opts.subject)
+  if (!transporter) {
+    console.warn('[mail] Sin RESEND_API_KEY ni SMTP configurado — no se envía:', opts.subject)
     return false
   }
   try {
@@ -55,7 +95,7 @@ export async function sendMail(opts: {
     })
     return true
   } catch (err) {
-    console.error('[mail] Error al enviar:', err)
+    console.error('[mail] Error al enviar (SMTP):', err)
     return false
   }
 }
