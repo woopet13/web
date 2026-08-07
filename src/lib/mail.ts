@@ -20,16 +20,20 @@ const globalForMail = globalThis as unknown as { _mailer?: nodemailer.Transporte
 function getTransporter(): nodemailer.Transporter | null {
   if (!HOST || !USER || !PASS) return null
   if (!globalForMail._mailer) {
-    globalForMail._mailer = nodemailer.createTransport({
+    const opts: Record<string, unknown> = {
       host: HOST,
       port: PORT,
       secure: PORT === 465, // 465 = SSL directo; 587 = STARTTLS
       auth: { user: USER, pass: PASS },
-      // Fallar rápido si el servidor/host bloquea el SMTP (no colgar la app).
-      connectionTimeout: 12000,
+      // Railway suele resolver el host por IPv6 y colgar la conexión SMTP:
+      // forzamos IPv4 para que conecte igual que en local.
+      family: 4,
+      // Fallar rápido si algo bloquea el SMTP (no colgar la app).
+      connectionTimeout: 15000,
       greetingTimeout: 12000,
-      socketTimeout: 15000,
-    })
+      socketTimeout: 20000,
+    }
+    globalForMail._mailer = nodemailer.createTransport(opts as never)
   }
   return globalForMail._mailer
 }
