@@ -1,25 +1,5 @@
 import { createClient } from '@/lib/supabase-server'
-import OrderStatusSelect from './OrderStatusSelect'
-import { EnvelopeSimple, Phone, MapPin, Package, CalendarBlank } from '@phosphor-icons/react/dist/ssr'
-
-const clp = (n: number) => '$' + Math.round(n || 0).toLocaleString('es-CL')
-
-function fecha(d: string) {
-  return new Date(d).toLocaleString('es-CL', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
-
-interface Item { name?: string; price?: number; quantity?: number }
-interface Address {
-  name?: string; phone?: string; region?: string; comuna?: string; address?: string; reference?: string
-}
-
-function toItems(v: unknown): Item[] {
-  if (Array.isArray(v)) return v as Item[]
-  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : [] } catch { return [] } }
-  return []
-}
+import PedidosList, { type Order } from './PedidosList'
 
 export default async function PedidosPage() {
   const supabase = await createClient()
@@ -40,86 +20,7 @@ export default async function PedidosPage() {
           No hay pedidos registrados aún.
         </div>
       ) : (
-        <div className="space-y-4">
-          {orders.map(order => {
-            const addr: Address = order.shipping_address ?? {}
-            const items = toItems(order.items)
-            const subtotal = order.total - (order.shipping_cost ?? 0)
-            return (
-              <div key={order.id} className="bg-white rounded-2xl border border-[#F3E0D5] shadow-sm overflow-hidden">
-                {/* Cabecera */}
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FFF6EE] px-5 py-3 border-b border-[#F3E0D5]">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-semibold text-[#155E5B]">
-                      {order.external_reference ?? order.id.slice(0, 8)}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-[#2F7A77]">
-                      <CalendarBlank weight="fill" size={13} /> {fecha(order.created_at)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-lg font-extrabold text-[#F0846E]">{clp(order.total)}</span>
-                    <OrderStatusSelect orderId={order.id} status={order.status} />
-                  </div>
-                </div>
-
-                {/* Detalle */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 p-5">
-                  {/* Cliente */}
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#2F7A77] mb-2">Cliente</p>
-                    <div className="space-y-1.5 text-sm text-[#155E5B]">
-                      {addr.name && <p className="font-medium">{addr.name}</p>}
-                      <p className="flex items-center gap-1.5 break-all">
-                        <EnvelopeSimple weight="fill" size={14} className="text-[#F2A24E] shrink-0" /> {order.user_email ?? '—'}
-                      </p>
-                      <p className="flex items-center gap-1.5">
-                        <Phone weight="fill" size={14} className="text-[#F2A24E] shrink-0" /> {addr.phone || '—'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Despacho */}
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#2F7A77] mb-2">Despacho</p>
-                    <div className="space-y-1 text-sm text-[#155E5B]">
-                      <p className="flex items-start gap-1.5">
-                        <MapPin weight="fill" size={14} className="text-[#F2A24E] shrink-0 mt-0.5" />
-                        <span>
-                          {addr.address || '—'}{addr.reference ? `, ${addr.reference}` : ''}<br />
-                          {[addr.comuna, addr.region].filter(Boolean).join(', ') || ''}
-                        </span>
-                      </p>
-                      <p className="text-xs text-[#2F7A77] pl-5">
-                        {order.shipping_method ?? 'Blue Express'} · {clp(order.shipping_cost ?? 0)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Productos */}
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#2F7A77] mb-2">
-                      <Package weight="fill" size={13} className="inline mr-1 text-[#F2A24E]" />
-                      Productos
-                    </p>
-                    <div className="space-y-1 text-sm text-[#155E5B]">
-                      {items.length === 0 && <p className="text-[#2F7A77]">—</p>}
-                      {items.map((it, i) => (
-                        <div key={i} className="flex justify-between gap-2">
-                          <span className="truncate">{it.name} <span className="text-[#2F7A77]">× {it.quantity ?? 1}</span></span>
-                          <span className="shrink-0">{clp((it.price ?? 0) * (it.quantity ?? 1))}</span>
-                        </div>
-                      ))}
-                      <div className="mt-2 pt-2 border-t border-[#F3E0D5] flex justify-between text-xs text-[#2F7A77]">
-                        <span>Subtotal</span><span>{clp(subtotal)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <PedidosList orders={orders as Order[]} />
       )}
     </div>
   )
