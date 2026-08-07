@@ -34,16 +34,29 @@ function norm(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
+const selCls = 'border border-[#F3E0D5] rounded-full px-4 py-2.5 text-sm bg-white text-[#155E5B] focus:outline-none focus:ring-2 focus:ring-[#F2A24E]'
+
 export default function ProductosTable({ productos }: { productos: Producto[] }) {
   const [query, setQuery] = useState('')
+  const [estado, setEstado] = useState('todos')
+  const [orden, setOrden] = useState('default')
   const q = norm(query.trim())
-  const filtered = q
-    ? productos.filter(p => norm(p.name).includes(q) || norm(p.category ?? '').includes(q))
-    : productos
 
   const threshold = (p: Producto) => p.low_stock_threshold ?? 5
   const agotados = productos.filter(p => p.stock <= 0).length
   const bajos = productos.filter(p => p.stock > 0 && p.stock <= threshold(p)).length
+
+  let filtered = productos
+  if (q) filtered = filtered.filter(p => norm(p.name).includes(q) || norm(p.category ?? '').includes(q))
+  if (estado === 'activo') filtered = filtered.filter(p => p.active)
+  else if (estado === 'inactivo') filtered = filtered.filter(p => !p.active)
+  else if (estado === 'agotado') filtered = filtered.filter(p => p.stock <= 0)
+  else if (estado === 'bajo') filtered = filtered.filter(p => p.stock > 0 && p.stock <= threshold(p))
+  if (orden !== 'default') {
+    const dir = orden.endsWith('asc') ? 1 : -1
+    const key = orden.startsWith('precio') ? 'price' : 'stock'
+    filtered = [...filtered].sort((a, b) => ((a[key] as number) - (b[key] as number)) * dir)
+  }
 
   return (
     <>
@@ -62,14 +75,30 @@ export default function ProductosTable({ productos }: { productos: Producto[] })
         </div>
       )}
 
-      <div className="relative mb-4 max-w-sm">
-        <MagnifyingGlass weight="bold" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2F7A77]" />
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar por nombre o categoría…"
-          className="w-full border border-[#F3E0D5] rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
-        />
+      <div className="mb-4 flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[220px]">
+          <MagnifyingGlass weight="bold" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2F7A77]" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar por nombre o categoría…"
+            className="w-full border border-[#F3E0D5] rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
+          />
+        </div>
+        <select className={selCls} value={estado} onChange={e => setEstado(e.target.value)}>
+          <option value="todos">Todos los estados</option>
+          <option value="activo">Activos</option>
+          <option value="inactivo">Inactivos</option>
+          <option value="agotado">Agotados</option>
+          <option value="bajo">Stock bajo</option>
+        </select>
+        <select className={selCls} value={orden} onChange={e => setOrden(e.target.value)}>
+          <option value="default">Ordenar por…</option>
+          <option value="precio_asc">Precio: menor a mayor</option>
+          <option value="precio_desc">Precio: mayor a menor</option>
+          <option value="stock_asc">Stock: menor a mayor</option>
+          <option value="stock_desc">Stock: mayor a menor</option>
+        </select>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#F3E0D5] overflow-hidden shadow-sm">

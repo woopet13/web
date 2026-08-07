@@ -41,11 +41,16 @@ function toItems(v: unknown): Item[] {
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
+const selCls = 'border border-[#F3E0D5] rounded-full px-4 py-2.5 text-sm bg-white text-[#155E5B] focus:outline-none focus:ring-2 focus:ring-[#F2A24E]'
+
 export default function PedidosList({ orders }: { orders: Order[] }) {
   const [query, setQuery] = useState('')
+  const [estado, setEstado] = useState('todos')
+  const [orden, setOrden] = useState('recientes')
   const q = norm(query.trim())
 
-  const filtered = !q ? orders : orders.filter(o => {
+  let filtered = orders
+  if (q) filtered = filtered.filter(o => {
     const a = o.shipping_address ?? {}
     const hay = [
       o.external_reference, o.user_email, a.name, a.phone, a.comuna, a.region, a.address,
@@ -53,17 +58,39 @@ export default function PedidosList({ orders }: { orders: Order[] }) {
     ].filter(Boolean).join(' ')
     return norm(hay).includes(q)
   })
+  if (estado !== 'todos') filtered = filtered.filter(o => o.status === estado)
+  filtered = [...filtered].sort((a, b) => {
+    if (orden === 'total_asc') return a.total - b.total
+    if (orden === 'total_desc') return b.total - a.total
+    const da = new Date(a.created_at).getTime(), db = new Date(b.created_at).getTime()
+    return orden === 'antiguos' ? da - db : db - da
+  })
 
   return (
     <>
-      <div className="relative mb-5 max-w-md">
-        <MagnifyingGlass weight="bold" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2F7A77]" />
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar por pedido, email, nombre, comuna o estado…"
-          className="w-full border border-[#F3E0D5] rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
-        />
+      <div className="mb-5 flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[220px]">
+          <MagnifyingGlass weight="bold" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2F7A77]" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar por pedido, email, nombre, comuna o estado…"
+            className="w-full border border-[#F3E0D5] rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#F2A24E] bg-white"
+          />
+        </div>
+        <select className={selCls} value={estado} onChange={e => setEstado(e.target.value)}>
+          <option value="todos">Todos los estados</option>
+          <option value="pending">Pendiente</option>
+          <option value="processing">En proceso</option>
+          <option value="completed">Completado</option>
+          <option value="cancelled">Cancelado</option>
+        </select>
+        <select className={selCls} value={orden} onChange={e => setOrden(e.target.value)}>
+          <option value="recientes">Más recientes</option>
+          <option value="antiguos">Más antiguos</option>
+          <option value="total_asc">Total: menor a mayor</option>
+          <option value="total_desc">Total: mayor a menor</option>
+        </select>
       </div>
 
       {filtered.length === 0 ? (

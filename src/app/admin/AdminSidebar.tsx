@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
-  House, Article, ShoppingCart, Users, SignOut, Plant, Tag, UsersThree,
+  House, Article, ShoppingCart, Users, SignOut, Plant, Tag, UsersThree, ChartLineUp,
 } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -15,6 +15,7 @@ const nav = [
   { href: '/admin/categorias',  label: 'Categorías', Icon: Tag },
   { href: '/admin/blog',        label: 'Blog',       Icon: Article },
   { href: '/admin/pedidos',     label: 'Pedidos',    Icon: ShoppingCart },
+  { href: '/admin/finanzas',    label: 'Finanzas',   Icon: ChartLineUp },
   { href: '/admin/clientes',    label: 'Clientes',   Icon: UsersThree },
   { href: '/admin/usuarios',    label: 'Usuarios',   Icon: Users },
 ]
