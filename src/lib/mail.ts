@@ -15,6 +15,12 @@ const FROM = process.env.MAIL_FROM ?? (USER ? `Woopet <${USER}>` : undefined)
 
 export const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL ?? USER ?? ''
 
+// Destinatarios de los avisos de venta (coma-separados). Por defecto, el admin.
+export const ORDER_RECIPIENTS: string[] = (process.env.ORDERS_NOTIFY_EMAIL ?? ADMIN_EMAIL ?? '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+
 const globalForMail = globalThis as unknown as { _mailer?: nodemailer.Transporter }
 
 function getTransporter(): nodemailer.Transporter | null {

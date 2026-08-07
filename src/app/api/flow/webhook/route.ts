@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPaymentStatus } from '@/lib/flow'
 import { pool } from '@/lib/db'
 import {
-  sendMail, ADMIN_EMAIL, orderConfirmationEmail, adminSaleEmail, lowStockEmail,
+  sendMail, ADMIN_EMAIL, ORDER_RECIPIENTS, orderConfirmationEmail, adminSaleEmail, lowStockEmail,
   type OrderForEmail,
 } from '@/lib/mail'
 
@@ -79,12 +79,17 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2) Correos (best-effort, con timeout: no bloquean si el SMTP falla).
-      await Promise.allSettled([
+      // 2) Correos (best-effort). El aviso de venta va a todos los
+      // destinatarios configurados (p.ej. contacto@ y pedidos@).
+      const sale = adminSaleEmail(orderForEmail)
+      const jobs: Promise<boolean>[] = [
         sendMail({ to: order.user_email, ...orderConfirmationEmail(orderForEmail) }),
-        ADMIN_EMAIL ? sendMail({ to: ADMIN_EMAIL, ...adminSaleEmail(orderForEmail) }) : Promise.resolve(false),
-        lowStock.length && ADMIN_EMAIL ? sendMail({ to: ADMIN_EMAIL, ...lowStockEmail(lowStock) }) : Promise.resolve(false),
-      ])
+        ...ORDER_RECIPIENTS.map(to => sendMail({ to, ...sale })),
+      ]
+      if (lowStock.length && ADMIN_EMAIL) {
+        jobs.push(sendMail({ to: ADMIN_EMAIL, ...lowStockEmail(lowStock) }))
+      }
+      await Promise.allSettled(jobs)
     }
 
     return NextResponse.json({ ok: true })
