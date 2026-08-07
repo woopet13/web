@@ -71,6 +71,42 @@ async function sendViaResend(opts: {
   }
 }
 
+// Envío por relay PHP en el cPanel (send.php). Necesario porque Railway
+// bloquea los puertos SMTP salientes; el PHP corre en el mismo servidor de
+// correo y envía localmente. Se usa si MAIL_RELAY_URL está definida.
+async function sendViaRelay(opts: {
+  to: string
+  subject: string
+  html: string
+  replyTo?: string
+}): Promise<boolean> {
+  const url = process.env.MAIL_RELAY_URL!
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: process.env.MAIL_RELAY_TOKEN ?? '',
+        to: opts.to,
+        subject: opts.subject,
+        html: opts.html,
+        replyTo: opts.replyTo ?? '',
+        from: FROM,
+      }),
+      signal: AbortSignal.timeout(12000),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data?.ok) {
+      console.error('[mail] Relay error:', res.status, JSON.stringify(data).slice(0, 200))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[mail] Relay fetch error:', err)
+    return false
+  }
+}
+
 export async function sendMail(opts: {
   to: string
   subject: string
@@ -79,7 +115,10 @@ export async function sendMail(opts: {
 }): Promise<boolean> {
   if (!opts.to) return false
 
-  // Preferimos Resend (HTTP) si está configurado; si no, SMTP.
+  // Prioridad: relay PHP (cPanel) → Resend (HTTP) → SMTP directo.
+  if (process.env.MAIL_RELAY_URL) {
+    return sendViaRelay(opts)
+  }
   if (process.env.RESEND_API_KEY) {
     return sendViaResend(opts)
   }
