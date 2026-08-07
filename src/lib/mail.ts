@@ -23,8 +23,12 @@ function getTransporter(): nodemailer.Transporter | null {
     globalForMail._mailer = nodemailer.createTransport({
       host: HOST,
       port: PORT,
-      secure: PORT === 465, // 465 = SSL directo
+      secure: PORT === 465, // 465 = SSL directo; 587 = STARTTLS
       auth: { user: USER, pass: PASS },
+      // Fallar rápido si el servidor/host bloquea el SMTP (no colgar la app).
+      connectionTimeout: 12000,
+      greetingTimeout: 12000,
+      socketTimeout: 15000,
     })
   }
   return globalForMail._mailer

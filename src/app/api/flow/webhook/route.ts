@@ -59,13 +59,7 @@ export async function POST(req: NextRequest) {
         shipping_address: order.shipping_address ?? null,
       }
 
-      // Correos al cliente y al admin (no bloquean si el SMTP falla).
-      await Promise.allSettled([
-        sendMail({ to: order.user_email, ...orderConfirmationEmail(orderForEmail) }),
-        ADMIN_EMAIL ? sendMail({ to: ADMIN_EMAIL, ...adminSaleEmail(orderForEmail) }) : Promise.resolve(false),
-      ])
-
-      // Descuenta stock de lo comprado y junta lo que quede en crítico.
+      // 1) Descuenta stock de lo comprado (crítico: va primero, no depende del correo).
       const lowStock: { name: string; stock: number; threshold: number }[] = []
       for (const it of items) {
         if (!it?.id) continue
@@ -85,9 +79,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      if (lowStock.length && ADMIN_EMAIL) {
-        await sendMail({ to: ADMIN_EMAIL, ...lowStockEmail(lowStock) })
-      }
+      // 2) Correos (best-effort, con timeout: no bloquean si el SMTP falla).
+      await Promise.allSettled([
+        sendMail({ to: order.user_email, ...orderConfirmationEmail(orderForEmail) }),
+        ADMIN_EMAIL ? sendMail({ to: ADMIN_EMAIL, ...adminSaleEmail(orderForEmail) }) : Promise.resolve(false),
+        lowStock.length && ADMIN_EMAIL ? sendMail({ to: ADMIN_EMAIL, ...lowStockEmail(lowStock) }) : Promise.resolve(false),
+      ])
     }
 
     return NextResponse.json({ ok: true })
