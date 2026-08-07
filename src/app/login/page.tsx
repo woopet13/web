@@ -26,8 +26,9 @@ export default function LoginPage() {
     } else {
       const params = new URLSearchParams(window.location.search)
       const next = params.get('next')
-      const isAdmin = data.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL
-      router.push(next ?? (isAdmin ? '/admin' : '/productos'))
+      const role = data.user?.role
+      const staff = role === 'admin' || role === 'manager' || data.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL
+      router.push(next ?? (staff ? '/admin' : '/productos'))
     }
     setLoading(false)
   }

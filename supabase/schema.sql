@@ -16,9 +16,13 @@ create table if not exists users (
   email         text unique not null,
   password_hash text not null,
   full_name     text,
+  role          text,          -- 'admin' (super) | 'manager' (staff) | null (cliente)
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
 );
+
+-- Rol para tablas 'users' ya existentes (idempotente).
+alter table users add column if not exists role text;
 
 -- ------------------------------------------------------------
 -- Productos (la app ya consultaba esta tabla; antes no estaba

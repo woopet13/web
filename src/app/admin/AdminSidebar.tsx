@@ -15,15 +15,16 @@ const nav = [
   { href: '/admin/categorias',  label: 'Categorías', Icon: Tag },
   { href: '/admin/blog',        label: 'Blog',       Icon: Article },
   { href: '/admin/pedidos',     label: 'Pedidos',    Icon: ShoppingCart },
-  { href: '/admin/finanzas',    label: 'Finanzas',   Icon: ChartLineUp },
+  { href: '/admin/finanzas',    label: 'Finanzas',   Icon: ChartLineUp, adminOnly: true },
   { href: '/admin/clientes',    label: 'Clientes',   Icon: UsersThree },
-  { href: '/admin/usuarios',    label: 'Usuarios',   Icon: Users },
+  { href: '/admin/usuarios',    label: 'Usuarios',   Icon: Users, adminOnly: true },
 ]
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ superAdmin = false }: { superAdmin?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const items = nav.filter(n => superAdmin || !n.adminOnly)
 
   async function logout() {
     await supabase.auth.signOut()
@@ -43,7 +44,7 @@ export default function AdminSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {nav.map(({ href, label, Icon }) => {
+        {items.map(({ href, label, Icon }) => {
           const active = pathname === href || (href !== '/admin' && pathname.startsWith(href))
           return (
             <Link

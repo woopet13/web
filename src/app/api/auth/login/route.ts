@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { rows } = await pool.query(
-    'SELECT id, email, password_hash FROM users WHERE email = $1',
+    'SELECT id, email, password_hash, role FROM users WHERE email = $1',
     [String(email).toLowerCase().trim()],
   )
   const user = rows[0]
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const token = await createSessionToken({ id: user.id, email: user.email })
-  const res = NextResponse.json({ user: { id: user.id, email: user.email } })
+  const res = NextResponse.json({ user: { id: user.id, email: user.email, role: user.role ?? null } })
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions())
   return res
 }

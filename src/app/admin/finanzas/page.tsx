@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation'
 import { getSummary, getTopProducts, getMonthlySales, getMonthsWithSales } from '@/lib/finance-db'
+import { isSuperAdmin } from '@/lib/auth'
 import MonthFilter from './MonthFilter'
 import { mesLabel } from './months'
 import { CurrencyDollar, Receipt, ChartLineUp, Package, Truck } from '@phosphor-icons/react/dist/ssr'
@@ -8,6 +10,7 @@ export const dynamic = 'force-dynamic'
 const clp = (n: number) => '$' + Math.round(n || 0).toLocaleString('es-CL')
 
 export default async function FinanzasPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
+  if (!(await isSuperAdmin())) redirect('/admin')
   const { mes } = await searchParams
   const filtro = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : null
 

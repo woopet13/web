@@ -6,6 +6,7 @@ export interface AppUser {
   id: string
   email: string
   full_name?: string
+  role?: 'admin' | 'manager' | null
 }
 
 const AUTH_EVENT = 'cf-auth-change'
