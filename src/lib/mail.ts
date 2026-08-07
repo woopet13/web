@@ -197,6 +197,27 @@ export interface OrderForEmail {
   shipping_cost?: number
   shipping_method?: string
   shipping_address?: ShippingAddress | null
+  created_at?: string
+}
+
+function fechaCL(d?: string): string {
+  if (!d) return ''
+  try {
+    return new Date(d).toLocaleString('es-CL', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    })
+  } catch { return '' }
+}
+
+// Ficha de datos del cliente (nombre, email, teléfono).
+function customerBlock(o: OrderForEmail): string {
+  const a = o.shipping_address ?? {}
+  return `<div style="background:#FFF6EE;border-radius:12px;padding:14px;margin:12px 0;font-size:14px;color:#155E5B">
+    <strong>Cliente</strong><br>
+    ${a.name ? esc(a.name) + '<br>' : ''}
+    ✉️ ${esc(o.user_email)}<br>
+    ${a.phone ? '📞 ' + esc(a.phone) : ''}
+  </div>`
 }
 
 function itemsTable(items: OrderItem[]): string {
@@ -242,15 +263,21 @@ export function orderConfirmationEmail(o: OrderForEmail): { subject: string; htm
   return { subject: `Pedido confirmado ${o.external_reference} · Woopet 🐾`, html: layout('¡Tu pedido está confirmado!', body) }
 }
 
-// Correo al admin: nueva venta.
+// Correo al admin: nueva venta con TODOS los datos del pedido y cliente.
 export function adminSaleEmail(o: OrderForEmail): { subject: string; html: string } {
+  const fecha = fechaCL(o.created_at)
   const body = `
-    <p style="font-size:15px">Entró un nuevo pedido pagado.</p>
-    <p style="font-size:14px;color:#2F7A77">Pedido <strong style="color:#155E5B">${esc(o.external_reference)}</strong> · Cliente: ${esc(o.user_email)}</p>
+    <p style="font-size:15px;margin:0 0 12px">Entró un nuevo pedido pagado 🎉</p>
+    <table style="width:100%;font-size:14px;color:#2F7A77;margin-bottom:4px">
+      <tr><td>N° de pedido</td><td style="text-align:right;color:#155E5B;font-weight:700">${esc(o.external_reference)}</td></tr>
+      ${fecha ? `<tr><td>Fecha</td><td style="text-align:right;color:#155E5B">${esc(fecha)}</td></tr>` : ''}
+    </table>
+    ${customerBlock(o)}
+    ${addressBlock(o.shipping_address)}
+    <p style="font-size:13px;font-weight:700;color:#155E5B;margin:16px 0 4px">Productos</p>
     ${itemsTable(o.items)}
     ${totals(o)}
-    ${addressBlock(o.shipping_address)}
-    <p style="font-size:13px;color:#2F7A77;margin-top:12px"><a href="https://tienda.woopet.cl/admin/pedidos" style="color:#F0846E">Ver en el panel →</a></p>`
+    <p style="font-size:13px;color:#2F7A77;margin-top:16px"><a href="https://tienda.woopet.cl/admin/pedidos" style="color:#F0846E">Ver el pedido en el panel →</a></p>`
   return { subject: `🛒 Nueva venta ${o.external_reference} · ${clp(o.total)}`, html: layout('Nueva venta', body) }
 }
 

@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
         shipping_cost: order.shipping_cost ?? 0,
         shipping_method: order.shipping_method ?? undefined,
         shipping_address: order.shipping_address ?? null,
+        created_at: order.created_at ? String(order.created_at) : undefined,
       }
 
       // 1) Descuenta stock de lo comprado (crítico: va primero, no depende del correo).
